@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: Docker image starts and is healthy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # --wait returns once the database and the app's HEALTHCHECK both report healthy.
+      - run: docker compose --profile app up -d --build --wait --wait-timeout 180
+        env:
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: ci-only-password
+      - run: curl -fsS http://localhost:8787/api/health
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --profile app logs
+      - if: always()
+        run: docker compose --profile app down -v

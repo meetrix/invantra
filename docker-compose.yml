@@ -1,0 +1,39 @@
+# The app and its database. For local development you only need the database:
+#   docker compose up -d db
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: invoice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invoice}
+      POSTGRES_DB: invoice
+    # 5433 on the host: 5432 is often already taken by a local PostgreSQL.
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U invoice -d invoice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    profiles: [app]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://invoice:${POSTGRES_PASSWORD:-invoice}@db:5432/invoice
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Plain HTTP on localhost. Behind HTTPS, remove this line.
+      COOKIE_SECURE: "false"
+    ports:
+      - "${APP_PORT:-8787}:8787"
+
+volumes:
+  pgdata:

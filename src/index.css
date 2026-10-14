@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/*
+ * Printed documents: Open Sans, #333 text, A4 (595.4 x 841.7pt) with the page
+ * margins below. Sizes are in points so they print the same on any screen.
+ */
+.print-page {
+  font-family: "Open Sans", system-ui, sans-serif;
+  color: #333333;
+  /* Ligatures ("fi", "ffi") would change text widths, and with them line breaks. */
+  font-variant-ligatures: none;
+}
+
+/*
+ * Print colours exactly, even with Chrome's "Background graphics" off: otherwise
+ * the grey table header and shaded rows drop out, and Chrome darkens light text
+ * such as the #aaa page number. Set on the root so the page margin boxes get it.
+ */
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@page {
+  size: A4;
+  /*
+   * 50.4pt top, 45.6pt left, 34.8pt right. The bottom is 49.2pt because
+   * Chromium moves a fixed element that pokes into a margin onto the next page,
+   * so the page-foot rule has to sit at the very bottom of the page area.
+   */
+  margin: 50.4pt 34.8pt 49.2pt 45.6pt;
+
+  /*
+   * Page margin boxes do two jobs. The bottom-right one prints the page number.
+   * And defining margin boxes at the top and bottom stops Chromium drawing its
+   * own print header/footer (date, page title, URL) into those margins, which it
+   * otherwise does whenever the margins have room.
+   */
+  @top-center {
+    content: "";
+  }
+  @bottom-right {
+    content: counter(page);
+    font: 6pt/7.2pt "Open Sans", sans-serif;
+    color: #aaaaaa;
+    vertical-align: top;
+    padding-top: 8.1pt;
+    /* The page number ends 2.2pt past the text's right edge. */
+    margin-right: -2.2pt;
+  }
+}
+
+.print-page-rule {
+  display: none;
+}
+
+/*
+ * Browser extensions inject their own floating buttons into the page, and they
+ * are printed along with it: one such overlay landed on top of "Balance Due" in
+ * a customer's invoice. The app renders into #root, so anything else sitting
+ * directly in the body belongs to something other than this app and has no
+ * business in a PDF.
+ */
+@media print {
+  body > *:not(#root) {
+    display: none !important;
+  }
+}
+
+/*
+ * "Yet to be Approved", drawn faintly across every page of a document that has
+ * not been approved. Fixed-position elements repeat on each printed page. The
+ * box must not overflow the page area, or Chromium shrinks the whole page to
+ * fit: the text is wider than the page before it is rotated, hence the clip.
+ */
+.print-watermark {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.print-watermark span {
+  transform: rotate(-43.5deg);
+  font-size: 56pt;
+  line-height: 1;
+  white-space: nowrap;
+  color: rgb(0 0 0 / 0.08);
+}
+
+/* On screen the sheet anchors the status ribbon in its corner. */
+@media screen {
+  .print-page {
+    position: relative;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  /*
+   * The @page margins provide the whitespace, so the on-screen padding goes.
+   * What's left, cloned onto every page: 0.8pt at the top to settle the first
+   * baseline, and 2pt at the bottom so descenders clear the page-foot rule.
+   * Reserving more would pull page breaks earlier than the layout intends.
+   */
+  .print-page {
+    padding: 0.8pt 0 2pt !important;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /*
+   * The thin rule at the foot of every sheet, 6pt wider than the text on each
+   * side. Fixed-position elements repeat on each printed page, positioned
+   * against the page area — and must stay inside it (see @page).
+   */
+  .print-page-rule {
+    display: block !important;
+    position: fixed;
+    left: -6pt;
+    right: -6pt;
+    bottom: 0;
+    border-top: 0.7pt solid #adadad;
+  }
+}

@@ -1,3 +1,5 @@
+<img src="branding/invantra-symbol.svg" alt="" width="72">
+
 # Invantra
 
 A small, self-hosted tool for estimates and invoices. A team signs in, writes estimates, gets them

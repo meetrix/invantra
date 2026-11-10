@@ -191,8 +191,10 @@ every total itself; it never trusts one sent by the browser.
 **A document is priced in its customer's currency.** Settings holds the default currency, used for
 new customers and for any customer without one.
 
-**Estimates show no total.** An estimate lists its line items without a subtotal or total, because
-the customer chooses which items to take. Invoices print Sub Total, charges, Total, and Balance Due.
+**Estimates print no total unless asked.** By default an estimate's PDF lists its line items
+without a subtotal or total, because the customer often chooses which items to take. Tick **Show
+the total on the PDF** under the estimate's total to print Sub Total, charges and Total. Invoices
+always print Sub Total, charges, Total, and Balance Due.
 
 **Numbers are assigned when a document is first saved.** Leaving the number field blank takes the
 next one from a per-type counter, inside the same transaction as the save, so two people saving at

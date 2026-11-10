@@ -425,6 +425,11 @@ function Details({ document, onChanged }: { document: Document; onChanged: (docu
           <span>Total</span>
           <span className="tabular-nums">{formatMoney(totals.total, cur)}</span>
         </div>
+        {!isInvoice && (
+          <p className="pt-1 text-right text-xs text-gray-500">
+            {document.showTotal ? "The total is shown on the PDF." : "The total is not shown on the PDF."}
+          </p>
+        )}
         {isInvoice && (
           <>
             <div className="flex justify-between">

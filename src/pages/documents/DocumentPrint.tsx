@@ -120,6 +120,8 @@ export function DocumentPrint() {
   const paid = paidAmount(document);
   const balance = totals.total - paid;
   const isInvoice = document.kind === "invoice";
+  // An estimate prints its totals only when "Show the total on the PDF" is ticked.
+  const showTotals = isInvoice || document.showTotal;
   const kindLabel = isInvoice ? "Invoice" : "Estimate";
   const cur = document.currency;
   // The Discount column only appears when some line has a discount (zeros are shown then).
@@ -171,7 +173,7 @@ export function DocumentPrint() {
           {/* The title and number stop 1.2pt short of the right edge. */}
           <h1 className="mt-[11.2pt] mr-[1.2pt] text-[28pt] leading-[28pt] font-normal text-black">{kindLabel}</h1>
           <p className="mt-[4.5pt] mr-[1.2pt] text-[10pt] leading-[13.5pt] font-bold"># {document.number}</p>
-          {/* Estimates show no total anywhere: the customer picks which line items to take. */}
+          {/* Only invoices carry a balance due; an estimate's total, if shown, is under the lines. */}
           {isInvoice && (
             <>
               <p className="mt-[15.5pt] text-[8pt] font-bold">Balance Due</p>
@@ -244,21 +246,27 @@ export function DocumentPrint() {
         </tbody>
       </table>
 
-      {/* ── Totals (invoices only — see the header) ── */}
-      {isInvoice && (
+      {/* ── Totals: always on invoices, on estimates only when ticked ── */}
+      {showTotals && (
         <div className="ml-auto w-[257.5pt] break-inside-avoid text-black">
           <TotalRow label="Sub Total" value={formatAmount(totals.subtotal)} />
           {document.adjustments.map((adj) => (
             <TotalRow key={adj.id} label={adj.label || "Charge"} value={formatAmount(adj.amount)} />
           ))}
-          <TotalRow bold label="Total" value={formatMoney(totals.total, cur)} />
-          {paid > 0 && <TotalRow label="Payment Made" value={`(-) ${formatAmount(paid)}`} />}
-          <TotalRow bold shaded label="Balance Due" value={formatMoney(balance, cur)} />
+          {isInvoice ? (
+            <>
+              <TotalRow bold label="Total" value={formatMoney(totals.total, cur)} />
+              {paid > 0 && <TotalRow label="Payment Made" value={`(-) ${formatAmount(paid)}`} />}
+              <TotalRow bold shaded label="Balance Due" value={formatMoney(balance, cur)} />
+            </>
+          ) : (
+            <TotalRow bold shaded label="Total" value={formatMoney(totals.total, cur)} />
+          )}
         </div>
       )}
 
       {document.notes && (
-        <section className={isInvoice ? "mt-[37.4pt]" : "mt-[28.7pt]"}>
+        <section className={showTotals ? "mt-[37.4pt]" : "mt-[28.7pt]"}>
           <p className="text-[10pt] leading-[13.5pt]">Notes</p>
           <div className="mt-[5.2pt] text-[8pt] leading-[10.5pt]">
             <TextLines text={document.notes} />
@@ -268,7 +276,7 @@ export function DocumentPrint() {
 
       {showBankDetails && (
         // Unlike line items, this section may split across pages.
-        <section className={document.notes ? "mt-[8.8pt]" : isInvoice ? "mt-[37.4pt]" : "mt-[28.7pt]"}>
+        <section className={document.notes ? "mt-[8.8pt]" : showTotals ? "mt-[37.4pt]" : "mt-[28.7pt]"}>
           <p className="text-[9.75pt] leading-[13.5pt] font-bold underline decoration-[0.9pt] underline-offset-[2.4pt]">
             {document.bankDetailsTitle || "Payment Details"}
           </p>
@@ -285,7 +293,7 @@ export function DocumentPrint() {
               ? "mt-[45.9pt]"
               : document.notes
                 ? "mt-[8.7pt]"
-                : isInvoice
+                : showTotals
                   ? "mt-[37.4pt]"
                   : "mt-[28.7pt]"
           }

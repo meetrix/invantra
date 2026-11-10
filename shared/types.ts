@@ -167,6 +167,8 @@ export interface Document {
   /** Payment/bank instructions, printed below the notes. */
   bankDetailsTitle: string;
   bankDetails: string;
+  /** Estimates only: print the totals on the PDF. Invoices always print them. */
+  showTotal: boolean;
   lineItems: LineItem[];
   adjustments: Adjustment[];
   payments: Payment[];
@@ -206,6 +208,8 @@ export interface DocumentInput {
   terms: string;
   bankDetailsTitle: string;
   bankDetails: string;
+  /** Estimates only: print the totals on the PDF. */
+  showTotal: boolean;
   lineItems: LineItem[];
   adjustments: Adjustment[];
   convertedFromId: string | null;

@@ -66,6 +66,14 @@ export function requiredText(body: Body, key: string, max = 500): string {
   return value;
 }
 
+/** A flag that may be left out, meaning false. */
+export function bool(body: Body, key: string): boolean {
+  const value = body[key];
+  if (value === undefined || value === null) return false;
+  if (typeof value !== "boolean") throw new HttpError(400, `${key} must be true or false.`);
+  return value;
+}
+
 export function number(body: Body, key: string): number {
   const value = body[key];
   if (typeof value !== "number" || !Number.isFinite(value)) throw new HttpError(400, `${key} must be a number.`);

@@ -24,6 +24,7 @@ export function blankInput(kind: DocumentKind, settings: Settings): DocumentInpu
     // which starts with the first set of payment details and can be switched.
     bankDetailsTitle: kind === "invoice" ? (settings.bankAccounts[0]?.title ?? "") : "",
     bankDetails: kind === "invoice" ? (settings.bankAccounts[0]?.details ?? "") : "",
+    showTotal: false,
     lineItems: [],
     adjustments: [],
     convertedFromId: null,
@@ -46,6 +47,7 @@ export function inputFromDocument(document: Document): DocumentInput {
     terms: document.terms,
     bankDetailsTitle: document.bankDetailsTitle,
     bankDetails: document.bankDetails,
+    showTotal: document.showTotal,
     lineItems: document.lineItems,
     adjustments: document.adjustments,
     convertedFromId: document.convertedFromId,

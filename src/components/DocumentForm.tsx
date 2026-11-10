@@ -188,6 +188,17 @@ export function DocumentForm({
             <span>Total</span>
             <span className="tabular-nums">{formatMoney(totals.total, currency)}</span>
           </div>
+          {/* Invoices always print their totals; an estimate prints them only when asked. */}
+          {!isInvoice && (
+            <label className="flex items-center justify-end gap-2 pt-2 text-gray-600 dark:text-gray-400">
+              <input
+                type="checkbox"
+                checked={document.showTotal}
+                onChange={(e) => update("showTotal", e.target.checked)}
+              />
+              Show the total on the PDF
+            </label>
+          )}
         </div>
       </div>
 

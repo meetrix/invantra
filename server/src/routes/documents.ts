@@ -19,6 +19,7 @@ import type {
 } from "../../../shared/types.ts";
 import { pool, tx, type Db } from "../db.ts";
 import {
+  bool,
   date,
   dateOrNull,
   displayName,
@@ -136,6 +137,7 @@ async function loadDocuments(db: Db, where: string, params: unknown[]): Promise<
     terms: r.terms,
     bankDetailsTitle: r.bank_details_title,
     bankDetails: r.bank_details,
+    showTotal: r.show_total,
     lineItems: linesByDoc.get(r.id) ?? [],
     adjustments: adjustmentsByDoc.get(r.id) ?? [],
     payments: paymentsByDoc.get(r.id) ?? [],
@@ -187,6 +189,7 @@ interface DraftInput {
   terms: string;
   bankDetailsTitle: string;
   bankDetails: string;
+  showTotal: boolean;
   lineItems: Omit<LineItem, "id">[];
   adjustments: Omit<Adjustment, "id">[];
 }
@@ -211,6 +214,7 @@ function draftInput(body: Body): DraftInput {
     terms: text(body, "terms", 20_000),
     bankDetailsTitle: text(body, "bankDetailsTitle"),
     bankDetails: text(body, "bankDetails", 20_000),
+    showTotal: bool(body, "showTotal"),
     lineItems: list(body, "lineItems", 200).map((line) => ({
       name: text(line, "name", 500),
       description: text(line, "description", 10_000),
@@ -417,8 +421,8 @@ export function documentRoutes(app: Hono<Env>) {
         const { rows } = await client.query(
           `insert into documents (kind, number, customer_id, currency, issue_date, due_date, valid_until, notes, terms,
                                   bank_details_title, bank_details, converted_from_id, subtotal, total, created_by,
-                                  reference, project_name, subject)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) returning id`,
+                                  reference, project_name, subject, show_total)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id`,
           [
             kind,
             docNumber,
@@ -438,6 +442,7 @@ export function documentRoutes(app: Hono<Env>) {
             input.reference,
             input.projectName,
             input.subject,
+            kind === "estimate" && input.showTotal,
           ],
         );
         const documentId = rows[0].id as string;
@@ -481,7 +486,8 @@ export function documentRoutes(app: Hono<Env>) {
         await client.query(
           `update documents set number = $2, customer_id = $3, currency = $4, issue_date = $5, due_date = $6,
                   valid_until = $7, notes = $8, terms = $9, bank_details_title = $10, bank_details = $11,
-                  subtotal = $12, total = $13, reference = $14, project_name = $15, subject = $16, updated_at = now()
+                  subtotal = $12, total = $13, reference = $14, project_name = $15, subject = $16, show_total = $17,
+                  updated_at = now()
             where id = $1`,
           [
             id,
@@ -500,6 +506,7 @@ export function documentRoutes(app: Hono<Env>) {
             input.reference,
             input.projectName,
             input.subject,
+            document.kind === "estimate" && input.showTotal,
           ],
         );
         await replaceLines(client, id, input);

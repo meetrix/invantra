@@ -20,7 +20,16 @@ import { userRoutes } from "./routes/users.ts";
 const app = new Hono<Env>();
 
 app.use(secureHeaders());
-app.use("/api/*", bodyLimit({ maxSize: 6 * 1024 * 1024 }));
+// Request bodies are capped: a payment attachment (5 MB) fits the general limit,
+// and CSV imports, which can hold years of documents, get a larger one.
+const tooLarge = (megabytes: number) =>
+  bodyLimit({
+    maxSize: megabytes * 1024 * 1024,
+    onError: (c) => c.json({ error: `That is more than ${megabytes} MB, too large to send in one go.` }, 413),
+  });
+const generalLimit = tooLarge(6);
+const importLimit = tooLarge(32);
+app.use("/api/*", (c, next) => (c.req.path.startsWith("/api/import/") ? importLimit(c, next) : generalLimit(c, next)));
 
 app.onError((error, c) => {
   if (error instanceof HttpError) {

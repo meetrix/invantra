@@ -12,13 +12,14 @@ export function Nav() {
     { to: "/estimates", label: "Estimates" },
     { to: "/invoices", label: "Invoices" },
     { to: "/payments", label: "Payments received" },
+    { to: "/reports", label: "Reports" },
     ...(can("users.manage") ? [{ to: "/users", label: "Users" }] : []),
     ...(can("settings.write") ? [{ to: "/settings", label: "Settings" }] : []),
   ];
 
   return (
     <header className="no-print sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-800 dark:bg-gray-950/90">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
         <img src="/favicon.svg" alt="Invantra" className="h-6 w-6" />
         <nav className="flex flex-wrap gap-1 text-sm">
           {links.map((link) => (
@@ -27,7 +28,7 @@ export function Nav() {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                `rounded-lg px-2.5 py-1.5 font-medium transition-colors ${
                   isActive
                     ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
                     : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"

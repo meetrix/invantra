@@ -12,6 +12,7 @@ import type {
   Settings,
   User,
 } from "../../shared/types";
+import type { Report } from "../../shared/reports";
 
 export class ApiError extends Error {
   status: number;
@@ -142,6 +143,19 @@ export const deletePaymentAttachment = (id: string) => document(request("DELETE"
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
 export const listPayments = () =>
   request<{ payments: ReceivedPayment[] }>("GET", "/payments").then((r) => r.payments);
+
+// ---------- reports ----------
+
+export interface ReportQuery {
+  from: string;
+  to: string;
+  basis: "accrual" | "cash";
+}
+const reportPath = (name: string, q: ReportQuery) =>
+  `/reports/${name}?${new URLSearchParams({ from: q.from, to: q.to, basis: q.basis })}`;
+export const getReport = (name: string, q: ReportQuery) =>
+  request<{ report: Report }>("GET", reportPath(name, q)).then((r) => r.report);
+export const reportCsvUrl = (name: string, q: ReportQuery) => `/api${reportPath(name, q)}&format=csv`;
 
 // ---------- CSV ----------
 

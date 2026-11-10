@@ -39,6 +39,10 @@ the web app, so there is a single thing to deploy.
   numbers, and a rule at the foot of every page. Save it with the browser's own **Print → Save as
   PDF**; the file name defaults to the document number. A document that is not yet approved prints
   with a faint "Yet to be Approved" watermark on every page.
+- **Reports**: sales by customer and by item, receivables aging (summary and details), customer
+  balances, payments received, time to get paid, estimate conversion, an income summary on an
+  accrual or cash basis, and an activity log. Each has date-range presets, prints, and exports to CSV.
+  Every currency is reported on its own. See [Reports](#reports).
 - **CSV export and import**: customers, items, estimates, invoices and payments, in the same
   columns as another system's export, so a business can move its history here.
 - **Custom numbering**: a format per document type, such as `INV-{seq}` or `EST-{YYYY}{MM}-{seq:2}`.
@@ -140,6 +144,23 @@ Draft ──submit──▶ Pending approval ──approve──▶ Approved ─
   Numbers are not reused. **Void** remains for keeping a cancelled document on record.
 - **Approval freezes the business and customer details** onto the document. Editing a customer's
   address later doesn't change a document that was already approved.
+
+## Reports
+
+**Reports** in the menu lists them by group. They are worked out from the documents and payments as
+they are when the report is run, and store nothing.
+
+- **What counts as a sale:** an invoice that is approved or paid. Drafts, pending, rejected and void
+  invoices are left out.
+- **Periods:** presets from Today to Previous year, Last 12 months, or any two dates. The aging and
+  balance reports take a single "as of" date and count only payments made by then.
+- **Currencies are never added together**: each report has one table per currency.
+- **Income summary** splits sales (line amounts before discount), discounts and named charges. On a
+  cash basis each payment received in the period is split in the same proportions as its invoice.
+- **Aging** counts days past the due date, or past the invoice date when there is none, in the
+  buckets current, 1–15, 16–30, 31–45 and over 45 days.
+- The period is kept in the address, so a report can be bookmarked or sent. Viewers can read reports;
+  exporting them to CSV is for admins and members, like the other exports.
 
 ## Exporting and importing CSV
 

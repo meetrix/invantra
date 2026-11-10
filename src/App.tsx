@@ -12,6 +12,8 @@ import { DocumentList } from "./pages/documents/DocumentList";
 import { DocumentPrint } from "./pages/documents/DocumentPrint";
 import { DocumentView } from "./pages/documents/DocumentView";
 import { PaymentsList } from "./pages/payments/PaymentsList";
+import { ReportsPage } from "./pages/reports/ReportsPage";
+import { ReportRoute } from "./pages/reports/ReportView";
 import { ItemForm } from "./pages/items/ItemForm";
 import { ItemsList } from "./pages/items/ItemsList";
 import { SettingsPage } from "./pages/settings/SettingsPage";
@@ -54,6 +56,8 @@ function SignedIn() {
         <Route path="/invoices/new" element={<DocumentEditor kind="invoice" />} />
         <Route path="/invoices/:id" element={<DocumentView kind="invoice" />} />
         <Route path="/payments" element={<PaymentsList />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports/:name" element={<ReportRoute />} />
         <Route path="/account" element={<AccountPage />} />
         {can("users.manage") && <Route path="/users" element={<UsersPage />} />}
         {can("settings.write") && <Route path="/settings" element={<SettingsPage />} />}

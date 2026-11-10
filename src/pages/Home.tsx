@@ -3,6 +3,7 @@ import { daysBetween, todayIso } from "../../shared/date";
 import { formatMoney, round2 } from "../../shared/money";
 import type { Document } from "../../shared/types";
 import { LoadState } from "../components/LoadState";
+import { SalesChart } from "../components/SalesChart";
 import { cardClass } from "../components/ui";
 import { StatusBadge } from "../components/StatusBadge";
 import { getSettings, listCustomers, listDocuments } from "../lib/api";
@@ -109,6 +110,10 @@ export function Home() {
           </dl>
         </Card>
       </div>
+
+      <Card title="Invoiced and received, last 12 months">
+        <SalesChart invoices={invoices} today={today} />
+      </Card>
 
       {awaitingApproval.length > 0 && can("documents.approve") && (
         <div>

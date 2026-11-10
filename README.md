@@ -34,7 +34,8 @@ the web app, so there is a single thing to deploy.
 - **Status ribbon**: each estimate and invoice shows its status across its top-left corner on
   screen. The ribbon never prints.
 - **Home**: what is owed on approved invoices, split into current and overdue and kept separate per
-  currency, the estimates waiting on someone, and what changed recently.
+  currency; a chart of what was invoiced and received each month over the last year; the estimates
+  waiting on someone; and what changed recently.
 - **Print-ready PDFs**: a dedicated print view with A4 page margins, a repeating table header, page
   numbers, and a rule at the foot of every page. Save it with the browser's own **Print → Save as
   PDF**; the file name defaults to the document number. A document that is not yet approved prints

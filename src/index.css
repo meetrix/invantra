@@ -68,10 +68,17 @@ html {
  * are printed along with it: one such overlay landed on top of "Balance Due" in
  * a customer's invoice. The app renders into #root, so anything else sitting
  * directly in the body belongs to something other than this app and has no
- * business in a PDF.
+ * business in a PDF. Some extensions attach to <html> instead, beside the body:
+ * a sidebar extension's elements there added an empty second page to every
+ * printed document.
+ *
+ * Extensions style their elements with IDs and classes, which outrank a plain
+ * selector even when both are !important. The :not() of IDs that never exist
+ * only raises this rule's specificity so that it wins.
  */
 @media print {
-  body > *:not(#root) {
+  html > :not(head):not(body):not(#x-print-a):not(#x-print-b):not(#x-print-c),
+  body > :not(#root):not(#x-print-a):not(#x-print-b):not(#x-print-c) {
     display: none !important;
   }
 }

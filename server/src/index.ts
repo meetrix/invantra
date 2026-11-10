@@ -21,7 +21,30 @@ import { MAX_ATTACHMENT_MB } from "../../shared/types.ts";
 
 const app = new Hono<Env>();
 
-app.use(secureHeaders());
+/*
+ * The default secure headers, plus a content security policy: the page may run
+ * only its own scripts and talk only to its own server, so an injected
+ * <script> or a link to another site's script would not run. Images may be
+ * data: URLs, which is how the business logo is stored, and so may fonts; inline
+ * styles are allowed because React and the print view set them.
+ */
+app.use(
+  secureHeaders({
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      // Vite inlines the smaller font files as data: URLs.
+      fontSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+    },
+  }),
+);
 // Request bodies are capped. Payment attachments are sent one file per request,
 // so the general limit is the largest attachment plus a little; CSV imports,
 // which can hold years of documents, get a larger one.
@@ -55,12 +78,21 @@ app.get("/api/health", async (c) => {
  * with the host the browser addressed. Behind a proxy that rewrites Host, that
  * is X-Forwarded-Host.
  */
+/** The host of an Origin header, or "" for one that is not a URL, such as "null" from a sandboxed page. */
+function originHost(origin: string): string {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return "";
+  }
+}
+
 app.use("/api/*", async (c, next) => {
   if (c.req.method !== "GET" && c.req.method !== "HEAD") {
     const site = c.req.header("sec-fetch-site");
     const origin = c.req.header("origin");
     const hosts = [c.req.header("host"), c.req.header("x-forwarded-host")];
-    const sameOrigin = site ? site === "same-origin" || site === "none" : !origin || hosts.includes(new URL(origin).host);
+    const sameOrigin = site ? site === "same-origin" || site === "none" : !origin || hosts.includes(originHost(origin));
     if (!sameOrigin) throw new HttpError(403, "Cross-site request refused.");
   }
   await next();

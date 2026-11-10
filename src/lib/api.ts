@@ -121,6 +121,10 @@ export const rejectDocument = (id: string, reason: string) =>
 export const convertToDraft = (id: string, reason: string) =>
   document(request("POST", `/documents/${id}/to-draft`, { reason }));
 export const voidDocument = (id: string) => document(request("POST", `/documents/${id}/void`, {}));
+/** Deletes an estimate or invoice for good. */
+export const deleteDocument = (id: string) => request<null>("DELETE", `/documents/${id}`);
+/** Deletes a payment; resolves to the invoice it belonged to. */
+export const deletePayment = (id: string) => document(request("DELETE", `/payments/${id}`));
 export const recordPayment = (id: string, payment: PaymentInput) =>
   document(request("POST", `/documents/${id}/payments`, payment));
 /** Attaches a file to a payment; resolves to the invoice it belongs to. */

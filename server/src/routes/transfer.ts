@@ -7,6 +7,7 @@ import { CsvTable, csvAmount, parseAmount, Problems, safeText, toCsv, unsafeText
 import { pool, tx } from "../db.ts";
 import { displayName, HttpError, readBody, requiredText, requirePermission, type Env, type SessionUser } from "../http.ts";
 import { getCustomer, importCustomers } from "./customers.ts";
+import { settleInvoice } from "./documents.ts";
 import { importItems } from "./items.ts";
 import { getSettings } from "./settings.ts";
 
@@ -307,16 +308,6 @@ async function addEvent(client: pg.PoolClient, documentId: string, user: Session
   );
 }
 
-/** Marks an invoice paid when its payments cover it, and approved again when they no longer do. */
-export async function settleInvoice(client: pg.PoolClient, documentId: string): Promise<void> {
-  await client.query(
-    `update documents d set status = case when p.paid >= d.total and d.total > 0 then 'paid' else 'approved' end,
-            updated_at = now()
-       from (select coalesce(sum(amount), 0) as paid from payments where document_id = $1) p
-      where d.id = $1 and d.kind = 'invoice' and d.status in ('approved', 'paid')`,
-    [documentId],
-  );
-}
 
 async function importDocuments(kind: DocumentKind, csv: string, user: SessionUser): Promise<ImportResult> {
   const isInvoice = kind === "invoice";

@@ -1,26 +1,49 @@
 import { Link, useNavigate } from "react-router-dom";
 import { formatDateNumeric } from "../../../shared/date";
 import { formatMoney } from "../../../shared/money";
+import type { ReceivedPayment } from "../../../shared/types";
 import { CsvButtons } from "../../components/CsvButtons";
 import { LoadState } from "../../components/LoadState";
 import { PageHeader } from "../../components/PageHeader";
 import { cardClass, tableHeadClass, tableRowClass } from "../../components/ui";
-import { listPayments } from "../../lib/api";
+import { useState } from "react";
+import { deletePayment, errorMessage, listPayments } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import { useLoad } from "../../lib/useLoad";
 
 /** Every payment recorded against an invoice. Payments are recorded from the invoice itself. */
 export function PaymentsList() {
   const navigate = useNavigate();
   const { data: payments, error, reload } = useLoad(listPayments, []);
+  const { can } = useAuth();
+  const canDelete = can("documents.delete");
+  const [busy, setBusy] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   if (!payments) return <LoadState error={error} />;
   const cell = "px-4 py-3";
+
+  async function remove(payment: ReceivedPayment) {
+    const amount = formatMoney(payment.amount, payment.currency);
+    if (!confirm(`Delete payment #${payment.number} of ${amount} on ${payment.documentNumber}? This cannot be undone.`)) return;
+    setBusy(payment.id);
+    setDeleteError("");
+    try {
+      await deletePayment(payment.id);
+      reload();
+    } catch (err) {
+      setDeleteError(errorMessage(err));
+    }
+    setBusy("");
+  }
 
   return (
     <div className="space-y-4">
       <PageHeader title="Payments received" subtitle={payments.length ? `${payments.length} recorded` : undefined}>
         <CsvButtons dataset="payments" onImported={reload} />
       </PageHeader>
+
+      {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
 
       {payments.length === 0 ? (
         <p className="text-sm text-gray-500">
@@ -39,6 +62,7 @@ export function PaymentsList() {
                 <th className={`${cell} font-medium`}>Mode</th>
                 <th className={`${cell} font-medium`}>Files</th>
                 <th className={`${cell} text-right font-medium`}>Amount</th>
+                {canDelete && <th className={cell} aria-label="Actions" />}
               </tr>
             </thead>
             <tbody>
@@ -64,6 +88,21 @@ export function PaymentsList() {
                   <td className={cell}>{payment.method}</td>
                   <td className={`${cell} tabular-nums`}>{payment.attachments.length || ""}</td>
                   <td className={`${cell} text-right tabular-nums`}>{formatMoney(payment.amount, payment.currency)}</td>
+                  {canDelete && (
+                    <td className={`${cell} text-right`}>
+                      <button
+                        type="button"
+                        disabled={busy === payment.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          remove(payment);
+                        }}
+                        className="text-xs text-red-700 hover:underline disabled:opacity-50 dark:text-red-400"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

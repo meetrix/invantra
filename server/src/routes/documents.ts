@@ -344,6 +344,17 @@ async function replaceLines(client: pg.PoolClient, documentId: string, input: Dr
   }
 }
 
+/** Marks an invoice paid when its payments cover it, and approved again when they no longer do. */
+export async function settleInvoice(client: pg.PoolClient, documentId: string): Promise<void> {
+  await client.query(
+    `update documents d set status = case when p.paid >= d.total and d.total > 0 then 'paid' else 'approved' end,
+            updated_at = now()
+       from (select coalesce(sum(amount), 0) as paid from payments where document_id = $1) p
+      where d.id = $1 and d.kind = 'invoice' and d.status in ('approved', 'paid')`,
+    [documentId],
+  );
+}
+
 /** Locks the document row for the rest of the transaction, so two actions on it cannot interleave. */
 async function lockDocument(client: pg.PoolClient, id: string) {
   const { rows } = await client.query(
@@ -641,6 +652,77 @@ export function documentRoutes(app: Hono<Env>) {
       }
     });
     return c.json({ document: await getDocument(pool, id) });
+  });
+
+  /**
+   * Deletes an estimate or invoice for good, with its lines, charges and
+   * activity. Its number is not reused. An invoice with payments cannot be
+   * deleted until they are: the refusal carries a code the page uses to point
+   * at them.
+   */
+  app.delete("/api/documents/:id", async (c) => {
+    const user = requirePermission(c, "documents.delete");
+    const id = idParam(c);
+    await tx(async (client) => {
+      const document = await lockDocument(client, id);
+      const payments = await client.query("select 1 from payments where document_id = $1 limit 1", [id]);
+      if (payments.rowCount) {
+        throw new HttpError(
+          409,
+          "Payments have been recorded against this invoice. Delete its payments first, then delete the invoice.",
+          "has_payments",
+        );
+      }
+      if (document.kind === "invoice") {
+        // As with voiding: the estimate it was made from can be invoiced again.
+        const { rows } = await client.query(
+          `update documents e set status = 'approved', updated_at = now()
+             from documents i
+            where i.id = $1 and e.id = i.converted_from_id and e.status = 'invoiced'
+              and not exists (select 1 from documents o
+                               where o.converted_from_id = e.id and o.id <> i.id and o.status <> 'void')
+          returning e.id`,
+          [id],
+        );
+        if (rows[0]) {
+          await addEvent(client, rows[0].id, user, "updated", `Invoice ${document.number} was deleted; estimate is approved again`);
+        }
+      } else {
+        // Invoices made from this estimate stay; they just no longer point back at it.
+        const { rows } = await client.query(
+          "update documents set converted_from_id = null, updated_at = now() where converted_from_id = $1 returning id",
+          [id],
+        );
+        for (const invoice of rows) {
+          await addEvent(client, invoice.id, user, "updated", `Estimate ${document.number}, which this invoice was made from, was deleted`);
+        }
+      }
+      await client.query("delete from documents where id = $1", [id]);
+    });
+    return c.body(null, 204);
+  });
+
+  /** Deletes a payment and its files; the invoice's balance and status follow. */
+  app.delete("/api/payments/:id", async (c) => {
+    const user = requirePermission(c, "documents.delete");
+    const paymentId = idParam(c);
+    const documentId = await tx(async (client) => {
+      const found = await client.query("select document_id from payments where id = $1", [paymentId]);
+      if (!found.rows[0]) throw new HttpError(404, "Payment not found.");
+      const invoice = await lockDocument(client, found.rows[0].document_id);
+      const { rows } = await client.query("delete from payments where id = $1 returning number, amount", [paymentId]);
+      if (!rows[0]) throw new HttpError(404, "Payment not found.");
+      await settleInvoice(client, invoice.id);
+      await addEvent(
+        client,
+        invoice.id,
+        user,
+        "payment",
+        `Payment #${rows[0].number} of ${formatMoney(rows[0].amount, invoice.currency)} deleted`,
+      );
+      return invoice.id;
+    });
+    return c.json({ document: await getDocument(pool, documentId) });
   });
 
   /** Every payment received, newest first, for the Payments Received page. */

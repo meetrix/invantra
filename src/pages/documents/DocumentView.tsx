@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { formatDate, formatDateTime, todayIso } from "../../../shared/date";
 import { computeDocumentTotals, formatMoney, round2 } from "../../../shared/money";
 import { MAX_ATTACHMENT_BYTES, MAX_PAYMENT_ATTACHMENTS } from "../../../shared/types";
@@ -17,6 +17,8 @@ import {
   approveDocument,
   attachmentUrl,
   convertToDraft,
+  deleteDocument,
+  deletePayment,
   deletePaymentAttachment,
   errorMessage,
   getDocument,
@@ -50,7 +52,8 @@ export function DocumentView({ kind }: { kind: DocumentKind }) {
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [dialog, setDialog] = useState<"to-draft" | "reject" | "payment" | null>(null);
+  const [dialog, setDialog] = useState<"to-draft" | "reject" | "payment" | "has-payments" | null>(null);
+  const navigate = useNavigate();
 
   if (!data) return <LoadState error={loadError} />;
   const [document, customers, items, settings] = data;
@@ -84,6 +87,20 @@ export function DocumentView({ kind }: { kind: DocumentKind }) {
 
   /** For buttons, which show a failure in the page's error line. */
   const act = (action: () => Promise<Document>) => run(action).then((message) => message && setError(message));
+
+  /** Deletes the document for good, after asking, and goes back to the list. */
+  async function remove() {
+    if (!confirm(`Delete ${label.toLowerCase()} ${document.number}? This cannot be undone.`)) return;
+    setBusy(true);
+    setError("");
+    try {
+      await deleteDocument(document.id);
+      navigate(`/${kind}s`, { replace: true });
+    } catch (err) {
+      setBusy(false);
+      setError(errorMessage(err));
+    }
+  }
 
   const people = [
     document.createdByName && `Created by ${document.createdByName}`,
@@ -157,6 +174,16 @@ export function DocumentView({ kind }: { kind: DocumentKind }) {
             className={dangerButton}
           >
             Void
+          </button>
+        )}
+        {can("documents.delete") && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => (hasPayments ? setDialog("has-payments") : remove())}
+            className={dangerButton}
+          >
+            Delete
           </button>
         )}
       </div>
@@ -242,6 +269,31 @@ export function DocumentView({ kind }: { kind: DocumentKind }) {
             <Details document={document} onChanged={setDocument} />
           )}
         </div>
+      )}
+
+      {dialog === "has-payments" && (
+        <Modal title={`Delete ${document.number}`} onClose={() => setDialog(null)}>
+          <p className="text-sm">
+            Payments have been recorded against this invoice. You must delete all of its payments before you can
+            delete the invoice.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" onClick={() => setDialog(null)} className={secondaryButton}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDialog(null);
+                setTab("details");
+                requestAnimationFrame(() => window.document.getElementById("payments")?.scrollIntoView({ behavior: "smooth" }));
+              }}
+              className={primaryButton}
+            >
+              Show payments
+            </button>
+          </div>
+        </Modal>
       )}
 
       {dialog === "payment" && (
@@ -462,11 +514,18 @@ function Details({ document, onChanged }: { document: Document; onChanged: (docu
       )}
 
       {isInvoice && document.payments.length > 0 && (
-        <div className="space-y-2">
+        <div id="payments" className="scroll-mt-20 space-y-2">
           <h2 className="text-sm font-medium text-gray-500">Payments</h2>
           <ul className="divide-y divide-gray-100 rounded border border-gray-200 text-sm dark:divide-gray-800 dark:border-gray-800">
             {document.payments.map((p) => (
-              <PaymentRow key={p.id} payment={p} currency={cur} canWrite={can("payments.write")} onChanged={onChanged} />
+              <PaymentRow
+                key={p.id}
+                payment={p}
+                currency={cur}
+                canWrite={can("payments.write")}
+                canDelete={can("documents.delete")}
+                onChanged={onChanged}
+              />
             ))}
           </ul>
         </div>
@@ -484,11 +543,13 @@ function PaymentRow({
   payment: p,
   currency,
   canWrite,
+  canDelete,
   onChanged,
 }: {
   payment: Payment;
   currency: string;
   canWrite: boolean;
+  canDelete: boolean;
   onChanged: (document: Document) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -528,7 +589,22 @@ function PaymentRow({
             .filter(Boolean)
             .join(" · ")}
         </span>
-        <span className="tabular-nums">{formatMoney(p.amount, currency)}</span>
+        <span className="flex items-center gap-3">
+          <span className="tabular-nums">{formatMoney(p.amount, currency)}</span>
+          {canDelete && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                confirm(`Delete payment #${p.number} of ${formatMoney(p.amount, currency)}? This cannot be undone.`) &&
+                run(() => deletePayment(p.id))
+              }
+              className="text-xs text-red-700 hover:underline disabled:opacity-50 dark:text-red-400"
+            >
+              Delete
+            </button>
+          )}
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
         {p.attachments.map((file) => (

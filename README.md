@@ -90,7 +90,7 @@ too: point `DATABASE_URL` at an empty database. The server creates its tables on
 
 | Role | Can do |
 | --- | --- |
-| **Admin** | Everything a member can, plus approve or reject documents, manage users, change settings |
+| **Admin** | Everything a member can, plus approve or reject documents, delete estimates, invoices and payments, manage users, change settings |
 | **Member** | Create and edit customers, items, estimates and invoices; submit them for approval; record payments; export and import CSV |
 | **Viewer** | Read and print everything; change nothing |
 
@@ -133,6 +133,11 @@ Draft ──submit──▶ Pending approval ──approve──▶ Approved ─
 - **An invoice's status follows its payments**: "Approved" until a payment is recorded; "Due in
   12 days" or "Due today" once part of it is paid; "Overdue by 40 days" when the due date has
   passed with a balance left; then "Paid".
+- **Admins can delete** an estimate or invoice for good, in any status, after confirming. An invoice
+  with payments cannot be deleted until its payments are; admins can delete a payment from the
+  invoice or from Payments received, and the invoice's balance and status follow. Deleting an invoice
+  made from an estimate makes the estimate convertible again; deleting an estimate leaves its invoice.
+  Numbers are not reused. **Void** remains for keeping a cancelled document on record.
 - **Approval freezes the business and customer details** onto the document. Editing a customer's
   address later doesn't change a document that was already approved.
 

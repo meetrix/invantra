@@ -12,6 +12,7 @@ import { HttpError, type Env } from "./http.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { customerRoutes } from "./routes/customers.ts";
 import { documentRoutes } from "./routes/documents.ts";
+import { transferRoutes } from "./routes/transfer.ts";
 import { itemRoutes } from "./routes/items.ts";
 import { settingsRoutes } from "./routes/settings.ts";
 import { userRoutes } from "./routes/users.ts";
@@ -74,6 +75,7 @@ settingsRoutes(app);
 customerRoutes(app);
 itemRoutes(app);
 documentRoutes(app);
+transferRoutes(app);
 
 app.all("/api/*", (c) => c.json({ error: "Not found." }, 404));
 

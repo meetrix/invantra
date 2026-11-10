@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { formatDateNumeric } from "../../../shared/date";
 import { formatMoney } from "../../../shared/money";
+import { CsvButtons } from "../../components/CsvButtons";
 import { LoadState } from "../../components/LoadState";
 import { PageHeader } from "../../components/PageHeader";
 import { cardClass, tableHeadClass, tableRowClass } from "../../components/ui";
@@ -10,14 +11,16 @@ import { useLoad } from "../../lib/useLoad";
 /** Every payment recorded against an invoice. Payments are recorded from the invoice itself. */
 export function PaymentsList() {
   const navigate = useNavigate();
-  const { data: payments, error } = useLoad(listPayments, []);
+  const { data: payments, error, reload } = useLoad(listPayments, []);
 
   if (!payments) return <LoadState error={error} />;
   const cell = "px-4 py-3";
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Payments received" subtitle={payments.length ? `${payments.length} recorded` : undefined} />
+      <PageHeader title="Payments received" subtitle={payments.length ? `${payments.length} recorded` : undefined}>
+        <CsvButtons dataset="payments" onImported={reload} />
+      </PageHeader>
 
       {payments.length === 0 ? (
         <p className="text-sm text-gray-500">

@@ -13,12 +13,21 @@ export type Permission =
   | "payments.write"
   | "settings.write"
   | "users.manage"
-  | "data.import";
+  | "documents.delete" // estimates, invoices and payments, for good
+  | "data.import" // CSV files of customers, items, estimates, invoices and payments
+  | "data.export";
 
-const MEMBER: Permission[] = ["customers.write", "items.write", "documents.write", "payments.write"];
+const MEMBER: Permission[] = [
+  "customers.write",
+  "items.write",
+  "documents.write",
+  "payments.write",
+  "data.import",
+  "data.export",
+];
 
 const PERMISSIONS: Record<Role, readonly Permission[]> = {
-  admin: [...MEMBER, "documents.approve", "settings.write", "users.manage", "data.import"],
+  admin: [...MEMBER, "documents.approve", "documents.delete", "settings.write", "users.manage"],
   member: MEMBER,
   viewer: [],
 };

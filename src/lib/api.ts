@@ -1,4 +1,5 @@
 import type {
+  CsvDataset,
   Customer,
   Document,
   DocumentInput,
@@ -90,8 +91,7 @@ export const createCustomer = (input: CustomerInput) =>
   request<{ customer: Customer }>("POST", "/customers", input).then((r) => r.customer);
 export const updateCustomer = (id: string, input: CustomerInput) =>
   request<{ customer: Customer }>("PUT", `/customers/${id}`, input).then((r) => r.customer);
-export const importCustomers = (csv: string) =>
-  request<{ result: ImportResult }>("POST", "/customers/import", { csv }).then((r) => r.result);
+
 
 // ---------- items ----------
 
@@ -101,8 +101,7 @@ export const listItems = () => request<{ items: Item[] }>("GET", "/items").then(
 export const createItem = (input: ItemInput) => request<{ item: Item }>("POST", "/items", input).then((r) => r.item);
 export const updateItem = (id: string, input: ItemInput) =>
   request<{ item: Item }>("PUT", `/items/${id}`, input).then((r) => r.item);
-export const importItems = (csv: string) =>
-  request<{ result: ImportResult }>("POST", "/items/import", { csv }).then((r) => r.result);
+
 
 // ---------- documents ----------
 
@@ -139,3 +138,10 @@ export const deletePaymentAttachment = (id: string) => document(request("DELETE"
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
 export const listPayments = () =>
   request<{ payments: ReceivedPayment[] }>("GET", "/payments").then((r) => r.payments);
+
+// ---------- CSV ----------
+
+/** A plain link downloads the file; the session cookie goes with it. */
+export const exportUrl = (dataset: CsvDataset) => `/api/export/${dataset}`;
+export const importCsv = (dataset: CsvDataset, csv: string) =>
+  request<{ result: ImportResult }>("POST", `/import/${dataset}`, { csv }).then((r) => r.result);

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ImportCsvButton } from "../../components/ImportCsvButton";
+import { CsvButtons } from "../../components/CsvButtons";
 import { LoadState } from "../../components/LoadState";
 import { PageHeader } from "../../components/PageHeader";
 import { cardClass, inputClass, primaryButton } from "../../components/ui";
-import { importCustomers, listCustomers } from "../../lib/api";
+import { listCustomers } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useLoad } from "../../lib/useLoad";
 
@@ -26,7 +26,7 @@ export function CustomersList() {
   return (
     <div className="space-y-5">
       <PageHeader title="Customers" subtitle={`${visible.length} of ${customers.length}`}>
-        {can("data.import") && <ImportCsvButton importCsv={importCustomers} onImported={reload} />}
+        <CsvButtons dataset="customers" onImported={reload} />
         {can("customers.write") && (
           <Link to="/customers/new" className={primaryButton}>
             New customer

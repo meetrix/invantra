@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { formatMoney } from "../../../shared/money";
-import { ImportCsvButton } from "../../components/ImportCsvButton";
+import { CsvButtons } from "../../components/CsvButtons";
 import { LoadState } from "../../components/LoadState";
 import { PageHeader } from "../../components/PageHeader";
 import { cardClass, inputClass, primaryButton, smallButton } from "../../components/ui";
-import { getSettings, importItems, listItems } from "../../lib/api";
+import { getSettings, listItems } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useLoad } from "../../lib/useLoad";
 
@@ -28,7 +28,7 @@ export function ItemsList() {
   return (
     <div className="space-y-5">
       <PageHeader title="Items" subtitle={`${visible.length} of ${items.length} in the catalogue`}>
-        {can("data.import") && <ImportCsvButton importCsv={importItems} onImported={reload} />}
+        <CsvButtons dataset="items" onImported={reload} />
         {can("items.write") && (
           <Link to="/items/new" className={primaryButton}>
             New item

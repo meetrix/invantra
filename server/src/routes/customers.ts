@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import type { Customer, ImportResult } from "../../../shared/types.ts";
-import { CsvTable } from "../csv.ts";
+import { CsvTable, Problems, unsafeText } from "../csv.ts";
 import { pool, tx, type Db } from "../db.ts";
 import { HttpError, idParam, readBody, requiredText, requirePermission, text, type Body, type Env } from "../http.ts";
 
@@ -60,23 +60,27 @@ const COLUMNS = {
   currency: ["Currency Code", "Currency"],
   notes: ["Notes"],
   street: ["Billing Address", "Address"],
+  taxId: ["Tax ID", "Tax Registration Number", "TRN", "VAT Number"],
 };
 
 /**
  * Creates or updates customers from a contacts CSV. Rows carrying an id update
- * the customer imported earlier under that id; a field is only overwritten when
- * the file has a column for it, so a short export cannot blank out a fuller one.
+ * the customer imported earlier under that id, or the customer with that id when
+ * the file is one of our own exports; a field is only overwritten when the file
+ * has a column for it, so a short export cannot blank out a fuller one.
  */
-async function importCustomers(csv: string): Promise<ImportResult> {
+export async function importCustomers(csv: string): Promise<ImportResult> {
   const table = new CsvTable(csv);
   if (!table.has(...COLUMNS.name)) throw new HttpError(400, "The file needs a Display Name or Name column.");
-  const result: ImportResult = { created: 0, updated: 0, skipped: 0 };
+  const result: ImportResult = { created: 0, updated: 0, skipped: 0, problems: [] };
+  const problems = new Problems();
 
   await tx(async (client) => {
-    for (const row of table.rows) {
-      const name = table.get(row, ...COLUMNS.name);
+    for (const [index, row] of table.rows.entries()) {
+      const name = unsafeText(table.get(row, ...COLUMNS.name));
       if (!name) {
         result.skipped++;
+        problems.add(`Row ${index + 2}: no customer name.`);
         continue;
       }
       const fields: Record<string, string> = { name };
@@ -102,16 +106,25 @@ async function importCustomers(csv: string): Promise<ImportResult> {
         const currency = table.get(row, ...COLUMNS.currency).toUpperCase();
         fields.currency = /^[A-Z]{3}$/.test(currency) ? currency : "";
       }
-      if (table.has(...COLUMNS.notes)) fields.notes = table.get(row, ...COLUMNS.notes);
+      if (table.has(...COLUMNS.notes)) fields.notes = unsafeText(table.get(row, ...COLUMNS.notes));
+      if (table.has(...COLUMNS.taxId)) fields.tax_id = table.get(row, ...COLUMNS.taxId);
+
+      const columns: string[] = Object.keys(fields);
+      const values: unknown[] = Object.values(fields);
+      // "Inactive" in the file's Status column archives the customer.
+      if (table.has("Status")) {
+        columns.push("archived");
+        values.push(table.get(row, "Status").toLowerCase() === "inactive");
+      }
 
       const externalId = table.get(row, ...COLUMNS.externalId);
-      const names = Object.keys(fields);
-      const values = Object.values(fields);
+      const names = columns;
 
       if (externalId) {
         const assignments = names.map((column, i) => `${column} = $${i + 2}`).join(", ");
         const updated = await client.query(
-          `update customers set ${assignments}, updated_at = now() where external_id = $1`,
+          `update customers set ${assignments}, updated_at = now()
+            where external_id = $1 or (external_id is null and id::text = $1)`,
           [externalId, ...values],
         );
         if (updated.rowCount) {
@@ -127,7 +140,7 @@ async function importCustomers(csv: string): Promise<ImportResult> {
       result.created++;
     }
   });
-  return result;
+  return { ...result, problems: problems.list };
 }
 
 export function customerRoutes(app: Hono<Env>) {
@@ -160,9 +173,4 @@ export function customerRoutes(app: Hono<Env>) {
     return c.json({ customer: toCustomer(rows[0]) });
   });
 
-  app.post("/api/customers/import", async (c) => {
-    requirePermission(c, "data.import");
-    const body = await readBody(c);
-    return c.json({ result: await importCustomers(requiredText(body, "csv", 5_000_000)) });
-  });
 }

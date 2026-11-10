@@ -39,7 +39,8 @@ the web app, so there is a single thing to deploy.
   numbers, and a rule at the foot of every page. Save it with the browser's own **Print → Save as
   PDF**; the file name defaults to the document number. A document that is not yet approved prints
   with a faint "Yet to be Approved" watermark on every page.
-- **CSV import**: admins can import customers and items from CSV exports of another system.
+- **CSV export and import**: customers, items, estimates, invoices and payments, in the same
+  columns as another system's export, so a business can move its history here.
 - **Custom numbering**: a format per document type, such as `INV-{seq}` or `EST-{YYYY}{MM}-{seq:2}`.
 - **Discounts and charges**: a flat discount per line, plus any number of named charges added to the
   subtotal (e.g. "Bank Charges"). A negative charge works as a whole-document discount.
@@ -89,8 +90,8 @@ too: point `DATABASE_URL` at an empty database. The server creates its tables on
 
 | Role | Can do |
 | --- | --- |
-| **Admin** | Everything a member can, plus approve or reject documents, manage users, change settings, import CSVs |
-| **Member** | Create and edit customers, items, estimates and invoices; submit them for approval; record payments |
+| **Admin** | Everything a member can, plus approve or reject documents, manage users, change settings |
+| **Member** | Create and edit customers, items, estimates and invoices; submit them for approval; record payments; export and import CSV |
 | **Viewer** | Read and print everything; change nothing |
 
 The table lives in `shared/permissions.ts`. The server enforces it on every request; the web app
@@ -135,19 +136,45 @@ Draft ──submit──▶ Pending approval ──approve──▶ Approved ─
 - **Approval freezes the business and customer details** onto the document. Editing a customer's
   address later doesn't change a document that was already approved.
 
-## Importing customers and items
+## Exporting and importing CSV
 
-Admins see an **Import CSV** button on the Customers and Items pages. The first row must be a header;
-column names are matched ignoring case, spaces and underscores.
+The Customers, Items, Estimates, Invoices and Payments received pages each have **Export CSV** and
+**Import CSV** buttons, for admins and members (viewers see neither). An exported file can be edited
+and imported back, and the same columns are read from another invoicing system's export, so moving
+here is a matter of importing its files.
 
-| | Columns read |
+- **Import in this order:** customers, items, estimates, invoices, payments. Each file finds what it
+  refers to by what came before: an estimate its customer, an invoice its customer and estimate, a
+  payment its invoice (by number).
+- **Importing the same file again updates instead of duplicating.** Each row's id (`Contact ID`,
+  `Item ID`, `Estimate ID`, `Invoice ID`, `InvoicePayment ID` or `CustomerPayment ID`) is kept, and
+  a file exported here carries the record's own id.
+- **Estimates and invoices have one row per line item**; the document's columns repeat on each of its
+  rows.
+- **Statuses are kept.** An imported approved estimate stays approved, a void invoice stays void, and
+  an invoice becomes Paid when its imported payments cover it. Approved documents are given the
+  business and customer details as they are at the time of the import. Each imported document says
+  so in its Activity tab.
+- **Totals are recomputed** from the lines. Prices are kept to two decimals, so a line priced to three
+  decimals elsewhere can come out a cent away from the total the customer was sent; the import then
+  adds a "Rounding" charge for the difference and lists the document in its report.
+- **Numbers are kept**, payment numbers too when they are free. Set the next numbers in Settings so
+  new documents continue after the imported ones.
+- **Attachments are not part of a CSV.** The payments export lists their file names only.
+- Text that a spreadsheet would run as a formula (starting with `=`, `+`, `-` or `@`) is written with
+  a leading apostrophe, and the apostrophe is removed again on import.
+
+| | Main columns |
 | --- | --- |
-| Customers | `Display Name` (or `Name`), `First Name`, `Last Name`, `EmailID` (or `Email`), `Phone` / `Work Phone` / `MobilePhone`, `Billing Address`, `Billing Street2`, `Billing City`, `Billing State`, `Billing Code`, `Billing Country`, `Currency Code`, `Notes`, `Contact ID` |
-| Items | `Item Name` (or `Name`), `Description`, `Rate`, `Item ID` |
+| Customers | `Contact ID`, `Display Name`, `First Name`, `Last Name`, `EmailID`, `Phone`, `Billing Address` (+ `Billing Street2`, `City`, `State`, `Code`), `Billing Country`, `Currency Code`, `Tax ID`, `Notes`, `Status` |
+| Items | `Item ID`, `Item Name`, `Description`, `Rate`, `Currency Code`, `Status` |
+| Estimates | `Estimate Date`, `Estimate ID`, `Estimate Number`, `Estimate Status`, `Customer ID`, `Customer Name`, `Expiry Date`, `PurchaseOrder`, `Currency Code`, `Total`, `Adjustment` + `Adjustment Description` or `Charges`, `Notes`, `Terms & Conditions`, `Subject`, `Project Name`, `Show Total`, then per line `Item Name`, `Item Desc`, `Quantity`, `Item Price`, `Discount Amount` |
+| Invoices | As estimates, with `Invoice …` and `Due Date`, plus `Estimate Number`, `Payment Details Title`, `Payment Details` |
+| Payments | `CustomerPayment ID` / `InvoicePayment ID`, `Payment Number`, `Date`, `Mode`, `Amount Applied to Invoice` (or `Amount`), `Bank Charges`, `Reference Number`, `Description`, `Invoice Number` |
 
-Rows that carry an id (`Contact ID`, `Item ID`) update the record imported earlier under that id, so
-the same file can be imported again without creating duplicates. A customer field is only
-overwritten when the file has a column for it.
+Column names are matched ignoring case, spaces and underscores. A customer or item field is only
+overwritten when the file has a column for it. `Charges` holds any number of named charges, one per
+line as `label | amount`; files with a single `Adjustment` column are read too.
 
 ## Development
 

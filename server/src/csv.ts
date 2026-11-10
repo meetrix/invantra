@@ -86,3 +86,42 @@ export function parseAmount(value: string): number {
   const amount = Number(digits);
   return Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0;
 }
+
+/**
+ * A cell that a spreadsheet would run as a formula (=, +, -, @, tab or carriage
+ * return first) gets a leading apostrophe, which spreadsheets hide. Only text
+ * goes through this: amounts are written as plain numbers, so "-12.50" stays a number.
+ */
+export function safeText(value: string): string {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/** Undoes safeText, so a file exported here imports back unchanged. */
+export function unsafeText(value: string): string {
+  return /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value;
+}
+
+/** A plain number with two decimals, for amount columns. */
+export function csvAmount(value: number): string {
+  return value.toFixed(2);
+}
+
+function csvCell(value: string): string {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/**
+ * Writes rows as CSV with a header. A byte-order mark goes first so spreadsheet
+ * programs read the file as UTF-8, and lines end in CRLF as RFC 4180 asks.
+ */
+export function toCsv(header: readonly string[], rows: readonly (readonly string[])[]): string {
+  return "﻿" + [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
+}
+
+/** Collects why rows were skipped, keeping the first hundred. */
+export class Problems {
+  list: string[] = [];
+  add(message: string) {
+    if (this.list.length < 100) this.list.push(message);
+  }
+}

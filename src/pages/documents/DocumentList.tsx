@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { formatDateNumeric } from "../../../shared/date";
 import { formatMoney } from "../../../shared/money";
 import type { DocumentKind } from "../../../shared/types";
+import { CsvButtons } from "../../components/CsvButtons";
 import { LoadState } from "../../components/LoadState";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -15,7 +16,7 @@ const TITLE: Record<DocumentKind, string> = { estimate: "Estimates", invoice: "I
 export function DocumentList({ kind }: { kind: DocumentKind }) {
   const { can } = useAuth();
   const navigate = useNavigate();
-  const { data, error } = useLoad(() => Promise.all([listDocuments(kind), listCustomers()]), [kind]);
+  const { data, error, reload } = useLoad(() => Promise.all([listDocuments(kind), listCustomers()]), [kind]);
 
   if (!data) return <LoadState error={error} />;
   const [documents, customers] = data;
@@ -26,6 +27,7 @@ export function DocumentList({ kind }: { kind: DocumentKind }) {
   return (
     <div className="space-y-5">
       <PageHeader title={TITLE[kind]} subtitle={documents.length ? `${documents.length} in total` : undefined}>
+        <CsvButtons dataset={`${kind}s`} onImported={reload} />
         {can("documents.write") && (
           <Link to={`/${kind}s/new`} className={primaryButton}>
             New {kind}

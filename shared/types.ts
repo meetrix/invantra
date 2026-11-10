@@ -134,7 +134,8 @@ export type DocumentEventType =
   | "to_draft"
   | "converted"
   | "payment"
-  | "voided";
+  | "voided"
+  | "imported";
 
 /** One row of a document's Activity tab. */
 export interface DocumentEvent {
@@ -257,7 +258,12 @@ export interface ImportResult {
   created: number;
   updated: number;
   skipped: number;
+  /** Why rows were skipped, and anything imported that needs a look; at most 100. */
+  problems: string[];
 }
+
+/** What can be exported to, and imported from, a CSV file. */
+export type CsvDataset = "customers" | "items" | "estimates" | "invoices" | "payments";
 
 /**
  * The currencies offered in the pickers. Anything already saved still works —

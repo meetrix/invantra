@@ -26,7 +26,7 @@ the web app, so there is a single thing to deploy.
 - **Payments**: record payments against an approved invoice, with the mode, reference and any bank
   charges. The balance due updates, and the invoice becomes Paid when it reaches zero. Every
   payment gets a running number and is listed under **Payments received**. Up to five files of
-  5 MB each (a remittance advice, a bank slip) can be attached to a payment; they are stored in
+  15 MB each (a remittance advice, a bank slip) can be attached to a payment; they are stored in
   the database.
 - **Reference, project and subject**: optional fields on every estimate and invoice. Converting an
   estimate carries the project and subject over and sets the invoice's reference to the

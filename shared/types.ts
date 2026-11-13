@@ -101,7 +101,8 @@ export interface PaymentAttachment {
 }
 
 export const MAX_PAYMENT_ATTACHMENTS = 5;
-export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_ATTACHMENT_MB = 15;
+export const MAX_ATTACHMENT_BYTES = MAX_ATTACHMENT_MB * 1024 * 1024;
 
 export type PaymentInput = Omit<Payment, "id" | "number" | "attachments">;
 

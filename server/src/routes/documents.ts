@@ -3,7 +3,7 @@ import type pg from "pg";
 import { computeDocumentTotals, formatMoney, round2 } from "../../../shared/money.ts";
 import { numberScope, renderNumber } from "../../../shared/numbering.ts";
 import { snapshotBusiness, snapshotCustomer } from "../../../shared/snapshot.ts";
-import { MAX_ATTACHMENT_BYTES, MAX_PAYMENT_ATTACHMENTS } from "../../../shared/types.ts";
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_MB, MAX_PAYMENT_ATTACHMENTS } from "../../../shared/types.ts";
 import type {
   Adjustment,
   Document,
@@ -793,7 +793,7 @@ export function documentRoutes(app: Hono<Env>) {
     if (!name) throw new HttpError(400, "name is required.");
     const data = Buffer.from(await c.req.arrayBuffer());
     if (data.length === 0) throw new HttpError(400, "The file is empty.");
-    if (data.length > MAX_ATTACHMENT_BYTES) throw new HttpError(400, "A file can be at most 5 MB.");
+    if (data.length > MAX_ATTACHMENT_BYTES) throw new HttpError(400, `A file can be at most ${MAX_ATTACHMENT_MB} MB.`);
     const contentType = (c.req.header("content-type") ?? "application/octet-stream").slice(0, 100);
 
     const documentId = await tx(async (client) => {

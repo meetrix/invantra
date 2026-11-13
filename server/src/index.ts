@@ -17,18 +17,20 @@ import { transferRoutes } from "./routes/transfer.ts";
 import { itemRoutes } from "./routes/items.ts";
 import { settingsRoutes } from "./routes/settings.ts";
 import { userRoutes } from "./routes/users.ts";
+import { MAX_ATTACHMENT_MB } from "../../shared/types.ts";
 
 const app = new Hono<Env>();
 
 app.use(secureHeaders());
-// Request bodies are capped: a payment attachment (5 MB) fits the general limit,
-// and CSV imports, which can hold years of documents, get a larger one.
+// Request bodies are capped. Payment attachments are sent one file per request,
+// so the general limit is the largest attachment plus a little; CSV imports,
+// which can hold years of documents, get a larger one.
 const tooLarge = (megabytes: number) =>
   bodyLimit({
     maxSize: megabytes * 1024 * 1024,
     onError: (c) => c.json({ error: `That is more than ${megabytes} MB, too large to send in one go.` }, 413),
   });
-const generalLimit = tooLarge(6);
+const generalLimit = tooLarge(MAX_ATTACHMENT_MB + 1);
 const importLimit = tooLarge(32);
 app.use("/api/*", (c, next) => (c.req.path.startsWith("/api/import/") ? importLimit(c, next) : generalLimit(c, next)));
 

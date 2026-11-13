@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { formatDate, formatDateTime, todayIso } from "../../../shared/date";
 import { computeDocumentTotals, formatMoney, round2 } from "../../../shared/money";
-import { MAX_ATTACHMENT_BYTES, MAX_PAYMENT_ATTACHMENTS } from "../../../shared/types";
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_MB, MAX_PAYMENT_ATTACHMENTS } from "../../../shared/types";
 import type { Customer, Document, DocumentKind, Item, Payment, Settings } from "../../../shared/types";
 import { DocumentForm } from "../../components/DocumentForm";
 import { LineItemsEditor } from "../../components/LineItemsEditor";
@@ -536,7 +536,7 @@ function Details({ document, onChanged }: { document: Document; onChanged: (docu
 }
 
 const tooBig = (file: File) => file.size > MAX_ATTACHMENT_BYTES;
-const FILE_LIMITS = `Up to ${MAX_PAYMENT_ATTACHMENTS} files, 5 MB each.`;
+const FILE_LIMITS = `Up to ${MAX_PAYMENT_ATTACHMENTS} files, ${MAX_ATTACHMENT_MB} MB each.`;
 
 /** One recorded payment with its files; files can be added or removed afterwards. */
 function PaymentRow({
@@ -570,7 +570,7 @@ function PaymentRow({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (tooBig(file)) return setError(`${file.name} is larger than 5 MB.`);
+    if (tooBig(file)) return setError(`${file.name} is larger than ${MAX_ATTACHMENT_MB} MB.`);
     run(() => uploadPaymentAttachment(p.id, file));
   }
 
@@ -663,7 +663,7 @@ function PaymentDialog({
   const filesError =
     files.length > MAX_PAYMENT_ATTACHMENTS
       ? `Choose at most ${MAX_PAYMENT_ATTACHMENTS} files.`
-      : files.filter(tooBig).map((f) => `${f.name} is larger than 5 MB.`)[0] ?? "";
+      : files.filter(tooBig).map((f) => `${f.name} is larger than ${MAX_ATTACHMENT_MB} MB.`)[0] ?? "";
   const settles = amount === balance;
 
   async function handleSubmit(e: React.FormEvent) {
